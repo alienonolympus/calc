@@ -38,7 +38,7 @@ class Expression():
                 return self.children[0].evaluate() + self.children[1].evaluate()
             elif self.expr_type == '-':
                 return self.children[0].evaluate() - self.children[1].evaluate()
-            elif self.expr_type == '*':
+            elif self.expr_type == '*':            
                 return self.children[0].evaluate() * self.children[1].evaluate()
             elif self.expr_type == '/':
                 return self.children[0].evaluate() / self.children[1].evaluate()
