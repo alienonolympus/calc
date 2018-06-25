@@ -3,12 +3,40 @@
 
 from expression import Expression
 
+def isunary(op):
+    '''Checks if an operation is an unary operation'''
+    return op in [
+        '!',
+        'n',
+        's',
+        'c',
+        't',
+        'S',
+        'C',
+        'T',
+        'L',
+        'ś',
+        'ć',
+        't́',
+        'Ś',
+        'Ć',
+        'T́'
+    ]
+
 def operation_level(op):
     '''Assigns a numerical value to operations for easier comparison'''
-    if op == '+' or op == '-':
+    if op == '?' or op == ':':
+        return -1
+    elif op == '&' or op == '|':
+        return 0
+    elif op == '+' or op == '-':
         return 1
     elif op == '*' or op == '/':
         return 2
+    elif op == '^' or op == 'v' or op == 'l':
+        return 3
+    elif isunary(op):
+        return 4
     elif op == '(' or op == ')':
         return 98
     else:
@@ -31,8 +59,28 @@ def outer_brackets(expr):
                 indices[closed_outer_bracket_count][1] = i
                 closed_outer_bracket_count += 1
     return indices
-    
+
+def ternary(expr):
+    '''Provides the indices of the ternary operations'''
+    op_count = 0
+    if_index = 0
+    else_index = 0
+    if '?' in expr and ':' in expr:
+        for i in range(len(expr)):
+            if expr[i] == '?':
+                if_index = i
+                op_count += 1
+            if expr[len(expr) - 1 - i] == ':':
+                else_index = len(expr) - 1 - i
+                op_count += 1
+            if op_count == 2:
+                return (if_index, else_index)
+            if i * 2 > len(expr):
+                return False
+    return False
+
 def isfloat(string):
+    '''Checks if a string is a float or not'''
     for ch in string:
         if not ch.isdecimal() and ch != '.':
             return False
@@ -44,15 +92,37 @@ def lexer(expression_string):
     i = 0
     expr_list = []
     operations = [
-        '+',
-        '-',
-        '*',
-        '/',
-        '(',
-        ')'
+        '?', # if
+        ':', # else
+        '&', # and
+        '|', # or
+        '!', # not
+        '+', # addition
+        '-', # subtraction
+        '*', # multiplication
+        '/', # division
+        '(', # lparenthesis
+        ')', # rparenthesis
+        '^', # exponent
+        'v', # root
+        'l', # logarithm
+        'L', # base-10 logarithm
+        'n', # negate
+        's', # sine
+        'c', # cosine
+        't', # tangent
+        'S', # arcsine
+        'C', # arccosine
+        'T', # arctangent
+        'ś', # hyperbolic sine
+        'ć', # hyperbolic cosine
+        't́', # hyperbolic tangent
+        'Ś', # hyperbolic arcsine
+        'Ć', # hyperbolic arccosine
+        'T́' # hyperbolic arctangent
     ]
 
-    # Remove redundant brackets on the outside
+    # Remove redundant brackets on the outside that will stop the root node from being determined
     if expr_string[0] == '(' and expr_string[len(expr_string) - 1] == ')':
         expr_string = expr_string[1 : len(expr_string ) - 1]
 
@@ -100,13 +170,28 @@ def parse(expression_string):
     
     current_op = operation_level(expr_list[current_index])
 
-    if current_op == 99: #Check if root node is a number
+    if current_op == 99: # Check if root node is a number
         expr.set_value(float(expr_list[current_index]))
     elif current_op == 98:
         last_brackets = brackets.pop()
         expr = parse(expr_list[last_brackets[0] + 1 : last_brackets[1]])
-    elif 1 <= current_op <= 2:
+    elif 0 <= current_op <= 3:
         expr.set_value(expr_list[current_index])
-        expr.add_children(parse(expr_list[0 : current_index]), parse(expr_list[current_index + 1 : ]))
-
+        expr.add_children(
+            parse(expr_list[0 : current_index]),
+            parse(expr_list[current_index + 1 : ])
+        )
+    elif current_op == 4: # For unary operations, a check to see if there is are preceding unary operations is required
+        while isunary(expr_list[current_index - 1]):
+            current_index -= 1
+        expr.set_value(expr_list[current_index])
+        expr.add_children(parse(expr_list[current_index + 1 : ]))
+    elif current_op == -1:
+        indices = ternary(expr_list)
+        expr.set_value('?:')
+        expr.add_children(
+            parse(expr_list[0 : indices[0]]),
+            parse(expr_list[indices[0] + 1 : indices[1]]),
+            parse(expr_list[indices[1] + 1 : ])
+        )
     return expr
