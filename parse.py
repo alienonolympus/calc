@@ -6,6 +6,7 @@ from expression import Expression
 def isunary(op):
     '''Checks if an operation is an unary operation'''
     return op in [
+        'o',
         '!',
         'n',
         's',
@@ -26,12 +27,14 @@ def isunary(op):
 def operation_level(op):
     '''Assigns a numerical value to operations for easier comparison'''
     if op == '?' or op == ':':
-        return -1
+        return -99
     elif op == '&' or op == '|':
+        return -1
+    elif op == '>' or op == '<' or op == '≥' or op == '≤' or op == '=':
         return 0
     elif op == '+' or op == '-':
         return 1
-    elif op == '*' or op == '/':
+    elif op == '*' or op == '/' or op == '%':
         return 2
     elif op == '^' or op == 'v' or op == 'l':
         return 3
@@ -39,6 +42,8 @@ def operation_level(op):
         return 4
     elif op == '(' or op == ')':
         return 98
+    elif op == 'I':
+        return 100
     else:
         return 99
 
@@ -60,17 +65,17 @@ def outer_brackets(expr):
                 closed_outer_bracket_count += 1
     return indices
 
-def ternary(expr):
-    '''Provides the indices of the ternary operations'''
+def ternary(expr, first_op, second_op):
+    '''Provides the indices of the ternary operations (accepted as 2nd and 3rd arguments)'''
     op_count = 0
     if_index = 0
     else_index = 0
-    if '?' in expr and ':' in expr:
+    if first_op in expr and second_op in expr:
         for i in range(len(expr)):
-            if expr[i] == '?':
+            if expr[i] == first_op:
                 if_index = i
                 op_count += 1
-            if expr[len(expr) - 1 - i] == ':':
+            if expr[len(expr) - 1 - i] == second_op:
                 else_index = len(expr) - 1 - i
                 op_count += 1
             if op_count == 2:
@@ -94,13 +99,21 @@ def lexer(expression_string):
     operations = [
         '?', # if
         ':', # else
+        '=', # equal to
+        '>', # greater than
+        '<', # less than
+        '≥', # greater than or equal to
+        '≤', # less than or equal to
         '&', # and
         '|', # or
         '!', # not
+        'o', # output
+        'I', # input
         '+', # addition
         '-', # subtraction
         '*', # multiplication
         '/', # division
+        '%', # modulo
         '(', # lparenthesis
         ')', # rparenthesis
         '^', # exponent
@@ -123,8 +136,9 @@ def lexer(expression_string):
     ]
 
     # Remove redundant brackets on the outside that will stop the root node from being determined
-    if expr_string[0] == '(' and expr_string[len(expr_string) - 1] == ')':
-        expr_string = expr_string[1 : len(expr_string ) - 1]
+    if expr_string:
+        if expr_string[0] == '(' and expr_string[len(expr_string) - 1] == ')':
+            expr_string = expr_string[1 : len(expr_string ) - 1]
 
     while i < len(expr_string):
         if expr_string[i] in operations:
@@ -168,27 +182,37 @@ def parse(expression_string):
                 if valid_index:
                     current_index = i
     
-    current_op = operation_level(expr_list[current_index])
+    try:
+        current_op = operation_level(expr_list[current_index])
+    except IndexError:
+        current_op = 99
 
-    if current_op == 99: # Check if root node is a number
+    if current_op == 100:
+        expr = parse(input())
+    elif current_op == 99: # Check if root node is a number
         expr.set_value(float(expr_list[current_index]))
     elif current_op == 98:
         last_brackets = brackets.pop()
         expr = parse(expr_list[last_brackets[0] + 1 : last_brackets[1]])
-    elif 0 <= current_op <= 3:
-        expr.set_value(expr_list[current_index])
-        expr.add_children(
-            parse(expr_list[0 : current_index]),
-            parse(expr_list[current_index + 1 : ])
-        )
     elif current_op == 4: # For unary operations, a check to see if there is are preceding unary operations is required
         while isunary(expr_list[current_index - 1]):
             current_index -= 1
         expr.set_value(expr_list[current_index])
         expr.add_children(parse(expr_list[current_index + 1 : ]))
-    elif current_op == -1:
-        indices = ternary(expr_list)
-        expr.set_value('?:')
+    elif -1 <= current_op <= 3:
+        expr.set_value(expr_list[current_index])
+        if len(expr_list) - 1 > current_index:
+            expr.add_children(
+                parse(expr_list[0 : current_index]),
+                parse(expr_list[current_index + 1 : ])
+            )
+        else:
+            expr.add_children(
+                parse(expr_list[0 : current_index])
+            )
+    elif current_op == -99:
+        indices = ternary(expr_list, '?', ':')
+        expr.set_value('if')
         expr.add_children(
             parse(expr_list[0 : indices[0]]),
             parse(expr_list[indices[0] + 1 : indices[1]]),

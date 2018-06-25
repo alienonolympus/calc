@@ -2,6 +2,8 @@
 '''Mathematical expressions are stored in a tree'''
 
 import math
+import sys
+import os
 
 class Expression():
     '''Tree structure that represents expressions'''
@@ -12,10 +14,16 @@ class Expression():
         self.mode = 'radians'
     
     def __repr__(self):
-        return '\n' + self.pretty()
+        sys.stdout = open(os.devnull, "w") # Prevents output
+        result = '\n' + self.pretty()
+        sys.stdout = sys.__stdout__ # Prevents output
+        return result
 
     def __str__(self):
-        return str(self.evaluate())
+        sys.stdout = open(os.devnull, "w") # Prevents output
+        result = str(self.evaluate())
+        sys.stdout = sys.__stdout__ # Prevents output
+        return result
     
     def set_value(self, value):
         '''Sets the value of the expression'''
@@ -38,21 +46,39 @@ class Expression():
             else:
                 self.add_child(Expression(expr))
     
+    def execute(self):
+        '''Executes the expression without showing value'''
+        self.evaluate()
+    
     def evaluate(self):
-        '''Returns the value of the mathematical expression'''
+        '''Returns the value of the expression'''
         if self.expr_type == 'num':
             return self.value
-        elif self.expr_type == '?:':
+        elif self.expr_type == 'if':
             if self.evaluate_child(0):
                 return self.evaluate_child(1)
             else:
                 return self.evaluate_child(2)
+        elif self.expr_type == '=':
+            return self.evaluate_child(0) == self.evaluate_child(1)    
+        elif self.expr_type == '>':
+            return self.evaluate_child(0) > self.evaluate_child(1)                
+        elif self.expr_type == '<':
+            return self.evaluate_child(0) < self.evaluate_child(1)
+        elif self.expr_type == '≥':
+            return self.evaluate_child(0) >= self.evaluate_child(1)                
+        elif self.expr_type == '≤':
+            return self.evaluate_child(0) <= self.evaluate_child(1)
         elif self.expr_type == '&':
             return self.evaluate_child(0) and self.evaluate_child(1)                
         elif self.expr_type == '|':
             return self.evaluate_child(0) or self.evaluate_child(1)
         elif self.expr_type == '!':
             return not self.evaluate_child(0)
+        elif self.expr_type == 'o':
+            result = self.evaluate_child(0)
+            print(chr(int(result)), end = '')
+            return result
         elif self.expr_type == '+':
             return self.evaluate_child(0) + self.evaluate_child(1)
         elif self.expr_type == '-':
@@ -61,6 +87,8 @@ class Expression():
             return self.evaluate_child(0) * self.evaluate_child(1)
         elif self.expr_type == '/':
             return self.evaluate_child(0) / self.evaluate_child(1)
+        elif self.expr_type == '%':
+            return self.evaluate_child(0) % self.evaluate_child(1)
         elif self.expr_type == '^':
             return math.pow(self.evaluate_child(0), self.evaluate_child(1))
         elif self.expr_type == 'v':
