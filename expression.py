@@ -6,7 +6,7 @@ import sys
 import os
 
 class Expression():
-    '''Tree structure that represents expressions'''
+    '''Tree structure that represents mathematical expressions'''
 
     def __init__(self, value=0):
         self.set_value(value)
