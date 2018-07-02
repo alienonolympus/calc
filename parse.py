@@ -131,7 +131,7 @@ class Expression():
         if self.mode == 'radians':
             return value
         elif self.mode == 'degrees':
-            return math.degrees(value)
+            return math.radians(value)
     
     def evaluate_trig_child(self, index):
         '''Evaluate an indexed child for trigonometric functions'''
@@ -144,7 +144,7 @@ class Expression():
             for child in self.children:
                 pretty_output += '    ' * indent + '|-- ' + child.pretty(indent + 1)
         return pretty_output
-    
+
     def pretty_print(self):
         '''Prints the structure of the expression tree'''
         print(self.pretty())
@@ -323,6 +323,9 @@ def lexer(expression_string):
         if expr_string[i] in operations:
             if expr_string[i] == '-' and not previous_is_number:
                 expr_list.append('n')
+            elif isunary(expr_string[i]) and previous_is_number:
+                expr_list.append('*')
+                expr_list.append(expr_string[i])
             else:
                 expr_list.append(expr_string[i])
             previous_is_number = False
@@ -399,15 +402,10 @@ def parse(expression_string):
         expr.add_children(parse(expr_list[current_index + 1 : ]))
     elif -1 <= current_op <= 3:
         expr.set_value(expr_list[current_index])
-        if len(expr_list) - 1 > current_index:
-            expr.add_children(
-                parse(expr_list[0 : current_index]),
-                parse(expr_list[current_index + 1 : ])
-            )
-        else:
-            expr.add_children(
-                parse(expr_list[0 : current_index])
-            )
+        expr.add_children(
+            parse(expr_list[0 : current_index]),
+            parse(expr_list[current_index + 1 : ])
+        )
     elif current_op == -99:
         indices = ternary(expr_list, '?', ':')
         expr.set_value('if')
