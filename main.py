@@ -1,7 +1,7 @@
 #/usr/bin/python3
 
-import sys
 from parse import parse
+from gui import gui
 
 def cli():
     mode = 'radians'
@@ -17,11 +17,9 @@ def cli():
             expr = parse(input_string)
             expr.mode = mode
             print(round(expr.evaluate(), 5))
+mode = input('Mode: ')
 
-def gui():
-    pass
-
-if sys.argv[1] == '--cli':
+if mode == 'cli':
     cli()
-elif sys.argv[1] == '--gui':
+elif mode == 'gui':
     gui()
